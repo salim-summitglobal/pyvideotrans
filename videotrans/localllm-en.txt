@@ -1,0 +1,3 @@
+Translate the text within the `<INPUT>` tag to {lang}, preserving line breaks, and enclose the translation in `<TRANSLATE_TEXT>` tags.
+
+<INPUT></INPUT>

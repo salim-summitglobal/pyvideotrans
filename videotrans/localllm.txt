@@ -1,0 +1,7 @@
+翻译 <INPUT> 标签内的文本为 {lang}，保留换行符，并用 <TRANSLATE_TEXT> 标签包裹。
+
+<INPUT></INPUT>
+
+
+
+
