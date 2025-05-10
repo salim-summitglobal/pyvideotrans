@@ -4,7 +4,8 @@ import re
 import time
 from pathlib import Path
 
-# Import videotrans modules
+import sys
+
 from videotrans.configure import config
 
 # Configuration
@@ -13,9 +14,9 @@ ROOT_DIR = config.ROOT_DIR
 HOST = "127.0.0.1"
 PORT = 9011
 API_URL = f"http://{HOST}:{PORT}/trans_video"
+API_URL_STATUS = f"http://{HOST}:{PORT}/task_status"
 VIDEO_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
 
-# Read host configuration if available
 if Path(ROOT_DIR+'/host.txt').is_file():
     host_str = Path(ROOT_DIR+'/host.txt').read_text(encoding='utf-8').strip()
     host_str = re.sub(r'https?://','', host_str).split(':')
@@ -26,7 +27,6 @@ if Path(ROOT_DIR+'/host.txt').is_file():
         API_URL = f"http://{HOST}:{PORT}/trans_video"
 
 def find_video_files(directory: str) -> list[str]:
-    """Find all video files in the specified directory."""
     if not os.path.isdir(directory):
         raise FileNotFoundError(f"Folder not found: {directory}")
 
@@ -51,13 +51,13 @@ def process_video(filepath: str) -> None:
             "translate_type": 0,
             "source_language": "auto",
             "target_language": "en",
-            "tts_type": 0,
-            "voice_role": "zh-CN-YunjianNeural",
-            "voice_rate": "+0%",
-            "volume": "+0%",
-            "pitch": "+0Hz",
-            "voice_autorate": True,
-            "video_autorate": True,
+            "tts_type": -1,
+            # "voice_role": "zh-CN-YunjianNeural",
+            # "voice_rate": "+0%",
+            # "volume": "+0%",
+            # "pitch": "+0Hz",
+            # "voice_autorate": False,
+            # "video_autorate": False,
             "is_separate": False,
             "back_audio": "",
             "subtitle_type": 1,
@@ -65,21 +65,79 @@ def process_video(filepath: str) -> None:
             "is_cuda": False,
         }
 
+        print(f"Submitting {os.path.basename(filepath)}...", end='')
+        sys.stdout.flush()
+
         response = requests.post(API_URL, json=data)
         response.raise_for_status()
         result = response.json()
+        status = False
 
         if result.get('code') == 0:
             task_id = result.get('task_id', 'unknown')
-            print(f"✓ Success: {os.path.basename(filepath)} → Task ID: {task_id}")
-            return task_id
+            print(f"\rSuccess: {os.path.basename(filepath)} -> Task ID: {task_id}")
         else:
             error_msg = result.get('msg', 'Unknown error')
-            print(f"✗ Error: {os.path.basename(filepath)} → {error_msg}")
+            print(f"\rError: {os.path.basename(filepath)} -> {error_msg}")
             return None
 
+        if not task_id:
+            print(f"\r✗ Failed: {os.path.basename(filepath)} -> No task ID received")
+            return None
+
+        print(f"Starting status checks for task {task_id}...")
+
+        count = 0
+        while not status:
+            try:
+                spinner = ["-", "\\", "|", "/"][count % 4]
+                count += 1
+
+                sys.stdout.write(f"\rChecking status: {spinner} Task: {task_id}                    ")
+                sys.stdout.flush()
+
+                status_msg = requests.get(f"{API_URL_STATUS}?task_id={task_id}")
+                status_msg.raise_for_status()
+
+                try:
+                    status_data = status_msg.json()
+                except ValueError as json_err:
+                    sys.stdout.write(f"\rJSON error: {str(json_err)[:30]}... Retrying...          ")
+                    sys.stdout.flush()
+                    time.sleep(2)
+                    continue
+
+                if status_data.get('code') == 0:
+                    status = True
+                    print(f"\rTask {task_id} completed successfully                               ")
+
+                    if 'data' in status_data and 'absolute_path' in status_data['data']:
+                        print(f"Output path: {status_data['data']['absolute_path']}")
+                    else:
+                        print("Output path not found in response")
+
+                elif status_data.get('code') == 3:
+                    status = True
+                    print(f"\rTask {task_id} Error: {status_data.get('msg', 'Unknown error')}                               ")
+
+                else:
+                    status_msg_text = status_data.get('msg', 'Processing...')
+                    if len(status_msg_text) > 40:
+                        status_msg_text = status_msg_text[:37] + "..."
+
+                    sys.stdout.write(f"\rStatus: {spinner} {status_msg_text}")
+                    sys.stdout.flush()
+                    time.sleep(2)
+
+            except requests.exceptions.RequestException as req_err:
+                sys.stdout.write(f"\rConnection error: {str(req_err)[:30]}... Retrying...")
+                sys.stdout.flush()
+                time.sleep(5)
+                continue
+
+        return task_id
     except requests.exceptions.RequestException as e:
-        print(f"✗ Failed: {os.path.basename(filepath)} → {e}")
+        print(f"\r✗ Failed: {os.path.basename(filepath)} -> {e}")
         return None
 
 if __name__ == "__main__":
@@ -92,7 +150,7 @@ if __name__ == "__main__":
 
     print(f"Found {total_videos} video(s) to process:")
     for video in video_files:
-        print(f"  • {os.path.basename(video)}")
+        print(f"  - {os.path.basename(video)}")
 
     print("\nStarting audio detection and processing...")
 
