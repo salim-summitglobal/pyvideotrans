@@ -13,9 +13,6 @@ VIDEO_DIR = "/home/sgt/Downloads/test"
 ROOT_DIR = config.ROOT_DIR
 HOST = "127.0.0.1"
 PORT = 9011
-API_URL = f"http://{HOST}:{PORT}/trans_video"
-API_URL_STATUS = f"http://{HOST}:{PORT}/task_status"
-VIDEO_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
 
 if Path(ROOT_DIR+'/host.txt').is_file():
     host_str = Path(ROOT_DIR+'/host.txt').read_text(encoding='utf-8').strip()
@@ -25,6 +22,15 @@ if Path(ROOT_DIR+'/host.txt').is_file():
     if len(host_str) == 2:
         PORT = int(host_str[1])
         API_URL = f"http://{HOST}:{PORT}/trans_video"
+
+
+API_URL = f"http://{HOST}:{PORT}/trans_video"
+API_URL_STATUS = f"http://{HOST}:{PORT}/task_status"
+VIDEO_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
+TARGET_LANGUAGE = "en"
+SOURCE_LANGUAGE = "auto"
+
+
 
 def find_video_files(directory: str) -> list[str]:
     if not os.path.isdir(directory):
@@ -38,7 +44,10 @@ def find_video_files(directory: str) -> list[str]:
 
     return videos
 
-
+def clear_line():
+    print("\r" + " " * 80, end="")
+    print("\r", end="")
+    sys.stdout.flush()
 
 def process_video(filepath: str) -> None:
     try:
@@ -49,17 +58,14 @@ def process_video(filepath: str) -> None:
             "model_name": "tiny",
             "detect_language": "auto",
             "translate_type": 0,
-            "source_language": "auto",
-            "target_language": "en",
-            "tts_type": -1,
-            # "voice_role": "zh-CN-YunjianNeural",
-            # "voice_rate": "+0%",
-            # "volume": "+0%",
-            # "pitch": "+0Hz",
-            # "voice_autorate": False,
-            # "video_autorate": False,
-            "is_separate": False,
-            "back_audio": "",
+            "source_language": SOURCE_LANGUAGE,
+            "target_language": TARGET_LANGUAGE,
+            "tts_type": 0,
+            "voice_role": "No",
+            "voice_rate": "+0%",
+            "volume": "+0%",
+            "pitch": "+0Hz",
+            "back_audio": "origin",
             "subtitle_type": 1,
             "append_video": False,
             "is_cuda": False,
@@ -75,14 +81,17 @@ def process_video(filepath: str) -> None:
 
         if result.get('code') == 0:
             task_id = result.get('task_id', 'unknown')
-            print(f"\rSuccess: {os.path.basename(filepath)} -> Task ID: {task_id}")
+            clear_line()
+            print(f"Success: {os.path.basename(filepath)} -> Task ID: {task_id}")
         else:
             error_msg = result.get('msg', 'Unknown error')
-            print(f"\rError: {os.path.basename(filepath)} -> {error_msg}")
+            clear_line()
+            print(f"Error: {os.path.basename(filepath)} -> {error_msg}")
             return None
 
         if not task_id:
-            print(f"\r✗ Failed: {os.path.basename(filepath)} -> No task ID received")
+            clear_line()
+            print(f"✗ Failed: {os.path.basename(filepath)} -> No task ID received")
             return None
 
         print(f"Starting status checks for task {task_id}...")
@@ -93,7 +102,8 @@ def process_video(filepath: str) -> None:
                 spinner = ["-", "\\", "|", "/"][count % 4]
                 count += 1
 
-                sys.stdout.write(f"\rChecking status: {spinner} Task: {task_id}                    ")
+                clear_line()
+                print(f"Checking status: {spinner} Task: {task_id}", end="")
                 sys.stdout.flush()
 
                 status_msg = requests.get(f"{API_URL_STATUS}?task_id={task_id}")
@@ -102,14 +112,16 @@ def process_video(filepath: str) -> None:
                 try:
                     status_data = status_msg.json()
                 except ValueError as json_err:
-                    sys.stdout.write(f"\rJSON error: {str(json_err)[:30]}... Retrying...          ")
+                    clear_line()
+                    print(f"JSON error: {str(json_err)[:30]}... Retrying...", end="")
                     sys.stdout.flush()
                     time.sleep(2)
                     continue
 
                 if status_data.get('code') == 0:
                     status = True
-                    print(f"\rTask {task_id} completed successfully                               ")
+                    clear_line()
+                    print(f"Task {task_id} completed successfully")
 
                     if 'data' in status_data and 'absolute_path' in status_data['data']:
                         print(f"Output path: {status_data['data']['absolute_path']}")
@@ -118,26 +130,30 @@ def process_video(filepath: str) -> None:
 
                 elif status_data.get('code') == 3:
                     status = True
-                    print(f"\rTask {task_id} Error: {status_data.get('msg', 'Unknown error')}                               ")
+                    clear_line()
+                    print(f"Task {task_id} Error: {status_data.get('msg', 'Unknown error')}")
 
                 else:
                     status_msg_text = status_data.get('msg', 'Processing...')
                     if len(status_msg_text) > 40:
                         status_msg_text = status_msg_text[:37] + "..."
 
-                    sys.stdout.write(f"\rStatus: {spinner} {status_msg_text}")
+                    clear_line()
+                    print(f"Status: {spinner} {status_msg_text}", end="")
                     sys.stdout.flush()
                     time.sleep(2)
 
             except requests.exceptions.RequestException as req_err:
-                sys.stdout.write(f"\rConnection error: {str(req_err)[:30]}... Retrying...")
+                clear_line()
+                print(f"Connection error: {str(req_err)[:30]}... Retrying...", end="")
                 sys.stdout.flush()
                 time.sleep(5)
                 continue
 
         return task_id
     except requests.exceptions.RequestException as e:
-        print(f"\r✗ Failed: {os.path.basename(filepath)} -> {e}")
+        clear_line()
+        print(f"✗ Failed: {os.path.basename(filepath)} -> {e}")
         return None
 
 if __name__ == "__main__":
@@ -173,10 +189,7 @@ if __name__ == "__main__":
     if task_ids:
         print("\nTask IDs:")
         for task_id in task_ids:
-            print(f"  • {task_id}")
-
-
-
+            print(f"  -> {task_id}")
 
 
 
