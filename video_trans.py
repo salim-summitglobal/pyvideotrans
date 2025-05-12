@@ -9,8 +9,8 @@ import sys
 from videotrans.configure import config
 
 # Configuration
-VIDEO_DIR = "/home/sgt/Downloads/test"
 ROOT_DIR = config.ROOT_DIR
+VIDEO_DIR = f"{ROOT_DIR}/video"
 HOST = "127.0.0.1"
 PORT = 9011
 
