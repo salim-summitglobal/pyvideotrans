@@ -168,7 +168,7 @@ if __name__ == "__main__":
     for video in video_files:
         print(f"  - {os.path.basename(video)}")
 
-    print("\nStarting audio detection and processing...")
+    print("\nStart processing...")
 
     successful = 0
     task_ids = []
