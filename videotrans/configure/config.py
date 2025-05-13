@@ -344,7 +344,7 @@ def parse_init():
         "best_of": 5,
         "temperature": 0.0,
         "condition_on_previous_text": False,
-        "fontsize": 16,
+        "fontsize": 10,
         "fontname": "黑体",
         "fontcolor": "&hffffff",
         "fontbordercolor": "&h000000",

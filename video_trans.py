@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 from videotrans.configure import config
+from videotrans.util.enum import TranslationType
 
 # Configuration
 ROOT_DIR = config.ROOT_DIR
@@ -56,7 +57,7 @@ def process_video(filepath: str) -> None:
             "split_type": "overall",
             "model_name": "tiny",
             "detect_language": "auto",
-            "translate_type": 0,
+            "translate_type": TranslationType.GEMINI.value,
             "source_language": SOURCE_LANGUAGE,
             "target_language": TARGET_LANGUAGE,
             "tts_type": 0,
