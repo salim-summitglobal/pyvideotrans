@@ -1,3 +1,7 @@
+# HOW TO RUN SCRIPT
+   -> [SCRIPT](docs/SCRIPT/README_SCRIPT.md)
+
+
 简体中文 | [English](docs/EN/README_EN.md) | [pt-BR](docs/pt-BR/README_pt-BR.md) | [Italian](docs/IT/README_IT.md) | [Spanish](docs/ES/README_ES.md) / [捐助](docs/about.md) / [Discord](https://discord.gg/y9gUweVCCJ) / 微信公众号：`pyvideotrans`
 
 # 视频翻译配音工具

@@ -10,7 +10,6 @@ dev
 venv
 f5-tts
 apidata
-video
 venv.bak
 dist
 source
