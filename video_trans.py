@@ -142,7 +142,7 @@ def process_video(filepath: str) -> None:
                     sys.stdout.flush()
                     time.sleep(2)
 
-            except requests.exceptions.RequestException as req_err:
+            except Exception as req_err:
                 clear_line()
                 print(f"Connection error: {str(req_err)[:30]}... Retrying...", end="")
                 sys.stdout.flush()
@@ -150,7 +150,7 @@ def process_video(filepath: str) -> None:
                 continue
 
         return task_id
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         clear_line()
         print(f"✗ Failed: {os.path.basename(filepath)} -> {e}")
         return None
