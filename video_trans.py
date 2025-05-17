@@ -57,7 +57,7 @@ def process_video(filepath: str) -> None:
             "split_type": "overall",
             "model_name": "tiny",
             "detect_language": "auto",
-            "translate_type": TranslationType.GEMINI.value,
+            "translate_type": TranslationType.GOOGLE.value,
             "source_language": SOURCE_LANGUAGE,
             "target_language": TARGET_LANGUAGE,
             "tts_type": 0,
